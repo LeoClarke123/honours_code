@@ -1,10 +1,10 @@
 N0 = 50; % initial cell numbers
 A = 0; B = 50; L = B-A; % boundaries
 l0 = L/N0; a0 = L/N0;
-tmax = 500;
+tmax = 1000;
 dt = 0.01;
 
-d_vals = [0.5,0.75,1.25,1.5].*l0; % l_0
+base_d_vals = [0.5,0.75,1.25,1.5].*l0; % l_0
 xp = dt/10; % death probability
 
 K1 = 1; K2_vals=[1.5,2,2.5,3,3.5,4]; 
@@ -13,8 +13,11 @@ K1 = 1; K2_vals=[1.5,2,2.5,3,3.5,4];
 insert = @(a, x, n)cat(2,  x(1:n), a, x(n+1:end)); 
 remove = @(x, n)cat(2,  x(1:n-1), x(n+1:end));
 
-% linear function for cell division prob
-Lin = @(xp, d, L) xp.*L./d;
+% hill function for cell division prob
+Hill = @(d, n, dp, L) dp.*(L.^n./(d.^n+L.^n));
+n = 1; % smaller values smooth out Hill function
+
+d_vals = base_d_vals.*((dp-xp)./xp).^(1./n); % length parameter 
 
 tic
 times = zeros(1,length(K2_vals)*length(d_vals));
@@ -24,7 +27,7 @@ p=1;
 for d = d_vals
 
 for K2=K2_vals
-    sim_num = 0; max_sim=50;
+    sim_num = 0; max_sim=10;
     mean_bdry = zeros(1,round(tmax/dt)+1);
     while sim_num<max_sim
     
@@ -52,17 +55,17 @@ for K2=K2_vals
                 i = i+1;
             end
             
-            % cell division (Linear function)
+            % cell division (Hill function)
             rand_vals = rand(1, length(x)-1);
             spaces = circshift(x,-1)-x; spaces = spaces(1,1:end-1);
-            lins = Lin(xp,d,spaces);
+            hills = Hill(d,n,dp,spaces);
             
-            for j=1:length(lins)
-                 if rand_vals(j)<=lins(j)
+            for j=1:length(hills)
+                 if rand_vals(j)<=hills(j)
                      x = insert((x(j+1)+x(j))/2, x, j);
                      k = insert(k(j), k, j);
                  end
-            end
+             end
             
             % cell death
             z=1;

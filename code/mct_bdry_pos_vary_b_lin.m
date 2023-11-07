@@ -4,10 +4,12 @@ l0 = L/N0; a0 = L/N0;
 tmax = 500;
 dt = 0.01;
 
-d_vals = [0.5,0.75,1.25,1.5].*l0; % l_0
-xp = dt/10; % death probability
+cols = [[0 0.4470 0.7410], [0.8500 0.3250 0.0980], [0.9290 0.6940 0.1250], [0.4940 0.1840 0.5560]];
+d_vals = [0.4, 0.5, 0.6, 1.25, 1.5, 1.75]*l0; % l_0
+dp = dt; % division probability
+xp = dp/10 ; % death probability
 
-K1 = 1; K2_vals=[1.5,2,2.5,3,3.5,4]; 
+K1 = 2; K2_vals=1; 
 
 % insert/remove new cell upon div
 insert = @(a, x, n)cat(2,  x(1:n), a, x(n+1:end)); 
@@ -18,13 +20,12 @@ Lin = @(xp, d, L) xp.*L./d;
 
 tic
 times = zeros(1,length(K2_vals)*length(d_vals));
-dist = 5;
 
-p=1;
+
 for d = d_vals
 
 for K2=K2_vals
-    sim_num = 0; max_sim=50;
+    sim_num = 0; max_sim=20;
     mean_bdry = zeros(1,round(tmax/dt)+1);
     while sim_num<max_sim
     
@@ -88,9 +89,11 @@ for K2=K2_vals
             while flag == 1
                 if v == length(k) && k(v) == K1
                     mean_bdry(c) = mean_bdry(c) + x(v+1); % K1 invades K2
+                    v = 0;
                     flag = 0;
                 elseif v == length(k) && k(v) == K2
                     mean_bdry(c) = mean_bdry(c) + 0; % K2 invades K1
+                    v = 0;
                     flag = 0;
                 elseif round((k(v)-k(v+1))*10)/10 ~= 0
                     mean_bdry(c) = mean_bdry(c) + x(v+1);
@@ -105,38 +108,15 @@ for K2=K2_vals
     end
     
     boundary = mean_bdry/max_sim;
-    minimum = min(abs(abs(boundary-B/2)-dist));
-    if boundary(end) < B/2
-        times(p) = -dt*find(abs(abs(boundary-B/2)-dist) == minimum);
-    elseif boundary(end) > B/2
-        times(p) = dt*find(abs(abs(boundary-B/2)-dist) == minimum);
-    end        
-    p=p+1;
-    plot(linspace(0,tmax,length(boundary)),boundary)
+    plot(linspace(0,tmax,length(mean_bdry)), boundary,'-', LineWidth=1.5)
     hold on
 end
 
 end
 
-toc
-
-figure
-u = length(K2_vals);
-
-plot(K2_vals-K1 , -dist./times(1:u), '-o', LineWidth=1.3);
-
-hold on
-plot(K2_vals-K1 , -dist./times(u+1:u*2), '-o', LineWidth=1.3);
-
-hold on
-plot(K2_vals-K1 , -dist./times(u*2+1:u*3), '-o', LineWidth=1.3);
-
-hold on
-plot(K2_vals-K1 , -dist./times(u*3+1:end), '-o', LineWidth=1.3);
-
-
-ylabel('$$v$$', 'Interpreter','latex', 'FontSize', 20)
-xlabel('$$K_{1} - K_{2}$$', 'Interpreter','latex', 'FontSize', 15)
-legend("$$l^{*}=0.5$$", "$$l^{*}=0.75$$", "$$l^{*}=1.25$$", "$$l^{*}=1.5$$", 'Interpreter','latex', 'FontSize', 15)
+ylabel('$$s$$', 'Interpreter','latex', 'FontSize', 20)
+xlabel('$$t$$', 'Interpreter','latex', 'FontSize', 20)
+legend("$$l^{*}=0.4$$", "$$l^{*}=0.5$$","$$l^{*}=0.6$$","$$l^{*}=1.25$$","$$l^{*}=1.5$$","$$l^{*}=1.75$$", 'Interpreter','latex', 'FontSize', 12)
 grid on
 grid minor
+toc

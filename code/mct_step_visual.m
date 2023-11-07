@@ -1,10 +1,10 @@
-N0 = 100; % initial cell numbers, MUST BE EVEN
+N0 = 50; % initial cell numbers, MUST BE EVEN
 dt = 0.01; % timestep 
 iter = 50000; % iterations
-A = 0; B = 100; L = B-A; % boundaries
+A = 0; B = 50; L = B-A; % boundaries
 l0 = L/N0; a0 = L/N0;
 x = zeros(1, N0+1); % cell bondaries
-K1 = 10; K2 = 1; % spring const for soft/hard tissue
+K1 = 5; K2 = 1; % spring const for soft/hard tissue
 k = [zeros(1, N0/2) + K1, zeros(1, N0/2) + K2]; % vector of spring const
 a = zeros(1, N0) + a0; % equilibrium length
 d = l0*1.2; % half occupation constant
@@ -82,11 +82,9 @@ while t < tmax
     t = t+dt;
 end
 toc
+ylabel('$$t$$', 'Interpreter','latex','FontSize', 20)
+xlabel('$$x$$', 'Interpreter','latex','FontSize', 20)
 ylim([0,t_lim])
-xlim([0,100])
-title('k_{1} = 10, k_{2} = 1')
-xlabel('x')
-ylabel('t')
-
+xlim([0,50])
 
 

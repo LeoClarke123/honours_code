@@ -1,15 +1,11 @@
 N0 = 50; % initial cell numbers
 A = 0; B = 50; L = B-A; % boundaries
 l0 = L/N0; a0 = L/N0;
-
-tmax = 2000;
-dt = 0.01;
-
-d_vals = linspace(0.5,3,10); % scale factors for a0 and d
-d_vals_plot = linspace(0.5,3,100); % scale factors for a0 and d
-dp = dt; % division probability
+d_vals = linspace(0.05,2,20); % scale factors for a0 and d
+cols = [[0 0.4470 0.7410], [0.8500 0.3250 0.0980], [0.9290 0.6940 0.1250], [0.4940 0.1840 0.5560]];
+dp = 0.01; % division probability
 xp = dp/10; % death probability
-K = 10;
+k_vals = [0.01, 1, 5, 10];
 
 % insert/remove new cell upon div
 insert = @(a, x, n)cat(2,  x(1:n), a, x(n+1:end)); 
@@ -18,6 +14,13 @@ remove = @(x, n)cat(2,  x(1:n-1), x(n+1:end));
 % linear function for cell division prob
 Lin = @(xp, d, L) xp*L/d;
 
+tmax = 200;
+dt = 0.01;
+col_ind = 1;
+tic
+for K = k_vals
+    plotter = zeros(1,length(d_vals));
+    plot_index = 1;
 for d_val=d_vals
     d=d_val*a0; % minimum length for division
 
@@ -91,23 +94,21 @@ for d_val=d_vals
         sim_num = sim_num+1;
         
     end
-    plot(d_val.^-1, L./(total_cells./max_sim),'ok');
-    hold on
+    plotter(plot_index) = L./(total_cells./max_sim);
+    plot_index = plot_index+1;
+end
+plot1 = plot(d_vals, plotter,'.-', MarkerSize=20);
+set(plot1,'Color', cols(col_ind:col_ind+2))
+hold on
+col_ind = col_ind + 3;
 end
 
-% plot([0,1],[a0,a0],'--k')
-% hold on
-% plot([1,1],[0,a0],'--k')
-
-plot(d_vals_plot.^-1, d_vals_plot, '--r')
+plot(d_vals, d_vals, '--k', LineWidth=1.3)
 hold on
-
-ylabel('Equilibrium cell length', 'Interpreter','latex')
-xlabel('$$1/l_{0}$$', 'Interpreter','latex')
-title('Linear function: $$N_{0}=50,\, d=10^{-3}$$', 'Interpreter','latex')
-legend('$$k=0.01$$','','','','','','','','','', ...
-       '$$k=10$$','','','','','','','','','', ...
-       '$$l^{*}$$', 'Interpreter','latex')
+toc
+ylabel('$$\langle l_{i} \rangle$$', 'Interpreter','latex','FontSize', 20)
+xlabel('$$l^{*}$$', 'Interpreter','latex','FontSize', 20)
+legend('$$k=0.01$$','$$k=1$$','$$k=5$$','$$k=10$$', '$$l^{*}$$', 'Interpreter','latex' ,'FontSize', 15)
 grid on
 grid minor
 

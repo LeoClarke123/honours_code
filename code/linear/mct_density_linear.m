@@ -1,11 +1,11 @@
-N0 = 200; % initial cell numbers, MUST BE EVEN
+N0 = 50; % initial cell numbers, MUST BE EVEN
 dt = 0.01; % timestep 
 iter = 50000; % iterations
-A = 0; B = 100; L = B-A; % boundaries
+A = 0; B = 50; L = B-A; % boundaries
 l0 = L/N0; a0 = L/N0;
-K1 = 1.2; K2 = 1; % spring const for soft/hard tissue
-d = l0*0.8; % half occupation constant
-xp = dt/50; % death probability
+K1 = 1.5; K2 = 1; % spring const for soft/hard tissue
+d = l0*1.25; % half occupation constant
+xp = dt/10; % death probability
 tic
 
 % linear function for cell division prob
@@ -15,7 +15,7 @@ Lin = @(xp, d, L) xp.*L./d;
 insert = @(a, x, n)cat(2,  x(1:n), a, x(n+1:end)); 
 remove = @(x, n)cat(2,  x(1:n-1), x(n+1:end));
 
-prof_size = 30; % number of points either side in profile
+prof_size = 20; % number of points either side in profile
 
 full_density = zeros(1, prof_size*2 + 1);
 
@@ -26,7 +26,6 @@ while sim<=tot_sim
     
     x = zeros(1, N0+1); % cell bondaries
     k = [zeros(1, N0/2) + K1, zeros(1, N0/2) + K2]; % vector of spring const
-    a = zeros(1, N0) + a0; % equilibrium length
     dens_count = 0;
     temp_density = zeros(1, prof_size*2 + 1);
     
@@ -43,9 +42,9 @@ while sim<=tot_sim
         % simulate ODE
         i=2;
         while i<length(x)
-            x(i) = x(i)+dt*(k(i)*(x(i+1)-x(i)-a(i))-k(i-1)*(x(i)-x(i-1)-a(i-1)));
-            if x(i) > 100 
-                x(i) = 100;
+            x(i) = x(i)+dt*(k(i)*(x(i+1)-x(i)-a0)-k(i-1)*(x(i)-x(i-1)-a0));
+            if x(i) > B 
+                x(i) = B;
             elseif x(i) < 0
                 x(i) = 0;
             end
@@ -56,14 +55,11 @@ while sim<=tot_sim
         rand_vals = rand(1, length(x)-1);
         spaces = circshift(x,-1)-x; spaces = spaces(1,1:end-1);
         lins = Lin(xp,d,spaces);
-        buffer = 0;
         
         for j=1:length(lins)
              if rand_vals(j)<=lins(j)
-                 x = insert((x(j+1)+x(j))/2, x, j+buffer);
+                 x = insert((x(j+1)+x(j))/2, x, j);
                  k = insert(k(j), k, j);
-                 a = insert(a0, a, j);
-                 buffer=buffer+1;
              end
         end
         
@@ -74,16 +70,13 @@ while sim<=tot_sim
                 if z == 1
                     x = remove(x,2);
                     k = remove(k, 1);
-                    a = remove(a, 1);
                 elseif z == length(x)-1
                     x = remove(x,z);
                     k = remove(k, z);
-                    a = remove(a, z);
                 else
                     x(z+1) = (x(z+1)+x(z))/2;
                     x = remove(x,z);
                     k = remove(k, z);
-                    a = remove(a, z);
                 end
             end
             z = z+1;
@@ -108,19 +101,15 @@ while sim<=tot_sim
 end
 toc
 full_density = full_density./tot_sim;
-plot(linspace(0,1,length(full_density)),full_density,'.', 'MarkerSize', 10)
-title('$$Linear: l_{0}=0.8a_{0}$$', 'Interpreter','latex')
-xlabel('$$x$$', 'Interpreter','latex')
-ylabel('$$\rho$$', 'Interpreter','latex')
-%legend('$$k_{1}-k_{2}=0.5$$', '$$k_{1}-k_{2}=1$$', '$$k_{1}-k_{2}=2$$', '$$k_{1}-k_{2}=5$$', 'Interpreter','latex')
-legend('$$k_{1}-k_{2}=0.2$$', 'Interpreter','latex')
+plot(linspace(-prof_size,prof_size,length(full_density)),full_density,'.', 'MarkerSize', 10)
+hold on
+xlabel('$$x$$', 'Interpreter','latex', 'FontSize', 20)
+ylabel('$$q$$', 'Interpreter','latex', 'FontSize', 20)
+legend('$$K_{1}-K_{2}=0.5$$', '$$K_{1}-K_{2}=1$$', '$$K_{1}-K_{2}=2$$', '$$K_{1}-K_{2}=5$$', 'Interpreter','latex', 'FontSize', 15)
+%legend('$$K_{1}-K_{2}=0.5$$', 'Interpreter','latex', 'FontSize', 15)
 grid on
 grid minor
-%ylim([2,3])
+ylim([0.8, 1.2])
 
-figure 
-semilogy(linspace(0,1,length(full_density)),full_density,'.', 'MarkerSize', 10)
-grid on
-grid minor
 
 

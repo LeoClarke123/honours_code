@@ -1,18 +1,18 @@
 N0 = 50; % initial cell numbers
 A = 0; B = 50; L = B-A; % boundaries
 l0 = L/N0; a0 = L/N0;
-d_vals = [0.8, 0.9, 1.1, 1.2]; % scale factors for a0 and d
+d_vals = [1]; % scale factors for a0 and d
 cols = [[0 0.4470 0.7410], [0.8500 0.3250 0.0980], [0.9290 0.6940 0.1250], [0.4940 0.1840 0.5560]];
 dp = 0.01; % division probability
 xp = 1e-3; % death probability
-k_vals = linspace(1,15,10);
+k_vals = linspace(1e-5,10,20);
 
 % insert/remove new cell upon div
 insert = @(a, x, n)cat(2,  x(1:n), a, x(n+1:end)); 
 remove = @(x, n)cat(2,  x(1:n-1), x(n+1:end));
 
-tmax = 2000;
-dt = 0.05;
+tmax = 1000;
+dt = 0.01;
 
 plot(k_vals, zeros(1,length(k_vals)) + a0,'--r')
 hold on
@@ -22,7 +22,7 @@ col_ind = 1;
 for d_val=d_vals
     d=d_val*a0; % minimum length for division
 
-    sim_num = 1; max_sim = 20;
+    sim_num = 1; max_sim = 10;
     total_cells = zeros(1, length(k_vals));
 
     while sim_num<=max_sim
@@ -95,6 +95,12 @@ for d_val=d_vals
     set([plot1 plot2],'Color', cols(col_ind:col_ind+2));
     col_ind = col_ind + 3;
 end
+hold on
+spec = @(x) 2.^((N0-x.*(N0+L))./(2.*N0.*(x-1)))./(log(2))-((N0-x.*(N0+L))./(2.*N0.*(x-1)))-1/log(2);
+plot(spec(linspace(0.5,0.8853,50)),linspace(0.5,0.8853,50),'--k')
+hold on
+spec2 = @(x) 2.^((x.*L)./(2.*(L-x.*N0)))./(log(2))-1/log(2);
+plot(spec2(linspace(0.5,0.9,50)),linspace(0.5,0.9,50),'--r')
 
 ylabel('Equilibrium cell length', 'Interpreter','latex')
 xlabel('$$k$$', 'Interpreter','latex')

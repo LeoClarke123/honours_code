@@ -1,15 +1,15 @@
-N0 = 50; % initial cell numbers
-A = 0; B = 50; L = B-A; % boundaries
+N0 = 100; % initial cell numbers
+A = 0; B = 100; L = B-A; % boundaries
 l0 = L/N0; a0 = L/N0;
-tmax = 1000;
+tmax = 500;
 dt = 0.01;
 
 cols = [[0 0.4470 0.7410], [0.8500 0.3250 0.0980], [0.9290 0.6940 0.1250], [0.4940 0.1840 0.5560]];
-d_vals = [0.5*a0, 0.75*a0, 1.25*a0, 1.5*a0]; % l_0
+d_vals = [0.8*a0];%, 0.9*a0, 1.5*a0, 2*a0]; % l_0
 dp = dt; % division probability
 xp = dp/10 ; % death probability
 
-K1 = 1; K2_vals=[1.5,2,2.5,3,3.5,4]; 
+K1 = 1; K2_vals=[2,3,4,5,6]; 
 
 % insert/remove new cell upon div
 insert = @(a, x, n)cat(2,  x(1:n), a, x(n+1:end)); 
@@ -22,11 +22,12 @@ p=1;
 for d = d_vals
 
 for K2=K2_vals
-    sim_num = 0; max_sim=20;
+    sim_num = 0; max_sim=1;
     mean_bdry = zeros(1,round(tmax/dt)+1);
     while sim_num<max_sim
     
         k = [zeros(1, N0/2) + K1, zeros(1, N0/2) + K2]; % spring const.
+        a = zeros(1, N0) + a0; % equilibrium length
         x = zeros(1, N0+1); % cell bondaries
         
         i=0;
@@ -41,9 +42,9 @@ for K2=K2_vals
             % simulate ODE
             i=2;
             while i<length(x)
-                x(i) = x(i)+dt*(k(i)*(x(i+1)-x(i)-a0)-k(i-1)*(x(i)-x(i-1)-a0));
-                if x(i) > B 
-                    x(i) = B;
+                x(i) = x(i)+dt*(k(i)*(x(i+1)-x(i)-a(i))-k(i-1)*(x(i)-x(i-1)-a(i-1)));
+                if x(i) > 100 
+                    x(i) = 100;
                 elseif x(i) < 0
                     x(i) = 0;
                 end
@@ -56,6 +57,7 @@ for K2=K2_vals
                 if x(j+1)-x(j)>=d && rand(1) <= dp
                     x = insert((x(j+1)+x(j))/2, x, j);
                     k = insert(k(j), k, j);
+                    a = insert(a0, a, j);
                 end
                 j = j+1;
             end
@@ -67,13 +69,16 @@ for K2=K2_vals
                     if z == 1
                         x = remove(x,2);
                         k = remove(k, 1);
+                        a = remove(a, 1);
                     elseif z == length(x)-1
                         x = remove(x,z);
                         k = remove(k, z);
+                        a = remove(a, z);
                     else
                         x(z+1) = (x(z+1)+x(z))/2;
                         x = remove(x,z);
                         k = remove(k,z);
+                        a = remove(a,z);
                     end
                 end
                 z = z+1;
@@ -103,45 +108,68 @@ for K2=K2_vals
     end
     
     boundary = mean_bdry/max_sim;
-    minimum = min(abs(abs(boundary-B/2)-10));
-    if boundary(end) < B/2
-        times(p) = -dt*find(abs(abs(boundary-B/2)-10) == minimum);
-    elseif boundary(end) > B/2
-        times(p) = dt*find(abs(abs(boundary-B/2)-10) == minimum);
+    plot(linspace(0,tmax,length(mean_bdry)), boundary,'-', LineWidth=1.5)
+    hold on
+    minimum = min(abs(abs(boundary-50)-10));
+    if boundary(end) < 50
+        times(p) = -dt*find(abs(abs(boundary-50)-10) == minimum);
+    elseif boundary(end) > 50
+        times(p) = dt*find(abs(abs(boundary-50)-10) == minimum);
     end        
     p=p+1;
 end
 
 end
 
+ylabel('Boundary position', 'Interpreter','latex', 'FontSize', 15)
+xlabel('$$t$$', 'Interpreter','latex', 'FontSize', 15)
+legend("$$k_{2}-k_{1}=1$$","$$k_{2}-k_{1}=2$$","$$k_{2}-k_{1}=3$$","$$k_{2}-k_{1}=4$$","$$k_{2}-k_{1}=5$$", 'Interpreter','latex', 'FontSize', 15)
+grid on
+grid minor
 toc
+
+K2_plot = linspace(K2_vals(1),K2_vals(end),100);
+theory = @(l0) -(l0-a0).*sqrt(xp/dt).*(K1-K2_plot).*sqrt(K1.*K2_plot)./(K1.^(3/2)+K2_plot.^(3/2));
 
 figure
 u = length(K2_vals);
 col_ind = 1;
 
-plot1 = plot(K2_vals-K1 , -10./times(1:u), '-o', LineWidth=1.3);
+fac1 = 2*d_vals(1)-(K2_plot-K1.*(2.*d_vals(1)-1))./(K1+K2_plot); 
+plot1 = plot(K2_vals-K1 , 10./times(1:u), '-o');
 hold on
-set(plot1,'Color', cols(col_ind:col_ind+2));
+plot2 = plot(K2_plot-K1, theory(d_vals(1))./fac1, '--');
+set([plot1 plot2],'Color', cols(col_ind:col_ind+2));
 col_ind = col_ind + 3;
 
-plot1 = plot(K2_vals-K1 , -10./times(u+1:u*2), '-o', LineWidth=1.3);
+fac2 = 2*d_vals(2)-(K2_plot-K1.*(2.*d_vals(2)-1))./(K1+K2_plot); 
 hold on
-set(plot1,'Color', cols(col_ind:col_ind+2));
+plot1 = plot(K2_vals-K1 , 10./times(u+1:u*2), '-o');
+hold on
+plot2 = plot(K2_plot-K1, theory(d_vals(2))./fac2, '--');
+set([plot1 plot2],'Color', cols(col_ind:col_ind+2));
 col_ind = col_ind + 3;
 
-plot1 = plot(K2_vals-K1 , -10./times(u*2+1:u*3), '-o', LineWidth=1.3);
+fac3 = (K2_plot-K1.*(2.*d_vals(3)-1))./(K1+K2_plot); 
 hold on
-set(plot1,'Color', cols(col_ind:col_ind+2));
+plot1 = plot(K2_vals-K1 , 10./times(u*2+1:u*3), '-o');
+hold on
+plot2 = plot(K2_plot-K1, theory(d_vals(3))./fac3, '--');
+set([plot1 plot2],'Color', cols(col_ind:col_ind+2));
 col_ind = col_ind + 3;
 
-plot1 = plot(K2_vals-K1 , -10./times(u*3+1:end), '-o', LineWidth=1.3);
-set(plot1,'Color', cols(col_ind:col_ind+2));
-col_ind = col_ind + 3;
+fac4 = (K2_plot-K1.*(2.*d_vals(4)-1))./(K1+K2_plot); 
 hold on
+plot1 = plot(K2_vals-K1 , 10./times(u*3+1:end), '-o');
+hold on
+plot2 = plot(K2_plot-K1, theory(d_vals(4))./fac4, '--');
+set([plot1 plot2],'Color', cols(col_ind:col_ind+2));
+col_ind = col_ind + 3;
 
-ylabel('$$v$$', 'Interpreter','latex', 'FontSize', 20)
-xlabel('$$K_{1} - K_{2}$$', 'Interpreter','latex', 'FontSize', 15)
-legend("$$l^{*}=0.5$$","$$l^{*}=0.75$$","$$l^{*}=1.25$$","$$l^{*}=1.5$$", 'Interpreter','latex', 'FontSize', 15)
+
+ylabel('$$v$$', 'Interpreter','latex', 'FontSize', 15)
+xlabel('$$k_{2} - k_{1}$$', 'Interpreter','latex', 'FontSize', 15)
+legend("$$l_{0}=0.8$$","","$$l_{0}=0.9$$","","$$l_{0}=1.5$$","","$$l_{0}=2$$","", 'Interpreter','latex', 'FontSize', 15)
+title('Step-Function: $$d=2 \cdot 10^{-4},\, b=5d$$', 'Interpreter','latex', 'FontSize', 15)
 grid on
 grid minor

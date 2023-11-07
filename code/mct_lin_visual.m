@@ -7,7 +7,7 @@ x = zeros(1, N0+1); % cell bondaries
 K1 = 5; K2 = 1; % spring const for soft/hard tissue
 k = [zeros(1, N0/2) + K1, zeros(1, N0/2) + K2]; % vector of spring const
 a = zeros(1, N0) + a0; % equilibrium length
-d = l0*1.5; % half occupation constant
+d = l0*1.25; % half occupation constant
 dp = dt; % max division probability
 xp = dp/10; % death probability
 tic
@@ -15,9 +15,8 @@ tic
 insert = @(a, x, n)cat(2,  x(1:n), a, x(n+1:end)); 
 remove = @(x, n)cat(2,  x(1:n-1), x(n+1:end));
 
-% hill function for cell division prob
-Hill = @(d, n, dp, L) dp.*(L.^n./(d.^n+L.^n));
-n = 10; % smaller values smooth out Hill function
+% linear function for cell division prob
+Lin = @(xp, d, L) xp*L/d;
 
 i=0;
 while i<length(x)
@@ -41,14 +40,14 @@ while t < tmax
         i = i+1;
     end
     
-    % cell division (Hill function)
+    % cell division (Linear function)
     rand_vals = rand(1, length(x)-1);
     spaces = circshift(x,-1)-x; spaces = spaces(1,1:end-1);
-    hills = Hill(d,n,dp,spaces);
+    lins = Lin(xp,d,spaces);
     buffer = 0;
     
-    for j=1:length(hills)
-         if rand_vals(j)<=hills(j)
+    for j=1:length(lins)
+         if rand_vals(j)<=lins(j)
              x = insert((x(j+1)+x(j))/2, x, j+buffer);
              k = insert(k(j), k, j);
              a = insert(a0, a, j);

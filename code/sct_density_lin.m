@@ -3,7 +3,7 @@ A = 0; B = 50; L = B-A; % boundaries
 l0 = L/N0; a0 = L/N0;
 K = 1; % spring const.
 a = zeros(1, N0) + a0; % equilibrium length
-base_d_vals = [0.8, 0.9, 1.25, 1.5].*l0; % minimum length for division
+d_vals = [0.8,0.9,1.25,1.5].*l0; % minimum length for division
 dp = 0.01; % division probability
 xp = dp/10; % death probability
 
@@ -11,11 +11,8 @@ xp = dp/10; % death probability
 insert = @(a, x, n)cat(2,  x(1:n), a, x(n+1:end)); 
 remove = @(x, n)cat(2,  x(1:n-1), x(n+1:end));
 
-% hill function for cell division prob
-Hill = @(d, n, dp, L) dp.*(L.^n./(d.^n+L.^n));
-n = 1; % smaller values smooth out Hill function
-
-d_vals = base_d_vals.*((dp-xp)./xp).^(1./n); % length parameter 
+% linear function for cell division prob
+Lin = @(xp, d, L) xp*L/d;
 
 tmax = 50;
 dt = 0.01;
@@ -44,20 +41,20 @@ for d=d_vals
                 i = i+1;
             end
             
-            % cell division (Hill function)
+            % cell division (Linear function)
             rand_vals = rand(1, length(x)-1);
             spaces = circshift(x,-1)-x; spaces = spaces(1,1:end-1);
-            hills = Hill(d,n,dp,spaces);
+            lins = Lin(xp,d,spaces);
             buffer = 0;
             
-            for j=1:length(hills)
-                 if rand_vals(j)<=hills(j)
+            for j=1:length(lins)
+                 if rand_vals(j)<=lins(j)
                      x = insert((x(j+1)+x(j))/2, x, j+buffer);
                      k = insert(K, k, j);
                      a = insert(a0, a, j);
                      buffer=buffer+1;
                  end
-             end
+            end
             
             % cell death
             z=1;

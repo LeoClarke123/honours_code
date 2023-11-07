@@ -1,13 +1,14 @@
-N0 = 30; % initial cell numbers
-A = 0; B = 100; L = B-A; % boundaries
+N0 = 10; % initial cell numbers
+A = 0; B = 10; L = B-A; % boundaries
 l0 = L/N0; a0 = L/N0;
+K = 0.1;
 x = zeros(1, N0+1); % cell bondaries
-k = zeros(1, N0) + 1; % spring const.
+k = zeros(1, N0) + K; % spring const.
 a = zeros(1, N0) + a0; %[zeros(1, N0/2) + a0, zeros(1, N0/2) + a0*3]; % equilibrium length
 l = zeros(1, N0) + l0; % cell_lengths
-d = l0*0.8; % minimum length for division
-dp = 0.001; % division probability
-xp = 0.0005; % death probability
+d = l0*0.95; % minimum length for division
+dp = 0.005; % division probability
+xp = 0; % death probability
 
 % insert/remove new cell upon div
 insert = @(a, x, n)cat(2,  x(1:n), a, x(n+1:end)); 
@@ -19,7 +20,7 @@ while i<length(x)
     i = i+1;
 end
 
-t = 0; tmax = 100;
+t = 0; tmax = 25;
 dt = 0.1;
 total_cells = zeros(1, tmax/dt);
 while t < tmax
@@ -38,7 +39,7 @@ while t < tmax
     while j<length(x)
         if x(j+1)-x(j)>=d && rand(1) <= dp
             x = insert((x(j+1)+x(j))/2, x, j);
-            k = insert(1, k, j);
+            k = insert(K, k, j);
             a = insert(a0, a, j);
         end
         j = j+1;
@@ -68,8 +69,10 @@ while t < tmax
         plot([A, B], [1, 1], 'k')
         hold on
         for val = x
-            ylim([-5, 8])
+            ylim([0.5, 2.5])
             plot([val, val], [1, 2], 'k')
+            xlabel('$$x$$', 'Interpreter','latex', 'FontSize', 15)
+            set(gca,'ytick',[])
             hold on
         end
         drawnow

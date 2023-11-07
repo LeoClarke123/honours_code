@@ -5,22 +5,24 @@ tmax = 5000;
 dt = 0.01;
 
 cols = [[0 0.4470 0.7410], [0.8500 0.3250 0.0980], [0.9290 0.6940 0.1250], [0.4940 0.1840 0.5560]];
-d_vals_1 = [0.5*a0, 0.75*a0, 1.5*a0, 2*a0]; % unscaled l_0
-xp = dt/50; % death probability
-dp = xp*5; % max division probability 
+base_d_vals = [0.5*a0, 0.75*a0, 1.5*a0, 2*a0]; % unscaled l_0
+xp = dt/100; % death probability
+dp = xp*10; % max division probability 
 K1 = 1; K2_vals=[1.1,1.2,1.3,1.4,1.5]; 
 
 tic
 % hill function for cell division prob
 Hill = @(d, n, dp, L1) dp.*(L1.^n./(d.^n+L1.^n));
 n = 1; % smaller values smooth out Hill function
-d_vals = d_vals_1.*((dp-xp)./xp).^(1./n); % l_0
+d_vals = base_d_vals.*((dp-xp)./xp).^(1./n); % l_0
 
 % insert/remove new cell upon div
 insert = @(a, x, n)cat(2,  x(1:n), a, x(n+1:end)); 
 remove = @(x, n)cat(2,  x(1:n-1), x(n+1:end));
 
 times = zeros(1,length(K2_vals)*length(d_vals));
+dist = 10;
+
 p=1;
 for d = d_vals
 
@@ -30,7 +32,6 @@ for K2=K2_vals
     while sim_num<max_sim
     
         k = [zeros(1, N0/2) + K1, zeros(1, N0/2) + K2]; % spring const.
-        a = zeros(1, N0) + a0; % equilibrium length
         x = zeros(1, N0+1); % cell bondaries
         
         i=0;
@@ -45,9 +46,9 @@ for K2=K2_vals
             % simulate ODE
             i=2;
             while i<length(x)
-                x(i) = x(i)+dt*(k(i)*(x(i+1)-x(i)-a(i))-k(i-1)*(x(i)-x(i-1)-a(i-1)));
-                if x(i) > 100 
-                    x(i) = 100;
+                x(i) = x(i)+dt*(k(i)*(x(i+1)-x(i)-a0)-k(i-1)*(x(i)-x(i-1)-a0));
+                if x(i) > B 
+                    x(i) = B;
                 elseif x(i) < 0
                     x(i) = 0;
                 end
@@ -58,14 +59,11 @@ for K2=K2_vals
             rand_vals = rand(1, length(x)-1);
             spaces = circshift(x,-1)-x; spaces = spaces(1,1:end-1);
             hills = Hill(d,n,dp,spaces);
-            buffer = 0;
             
             for j=1:length(hills)
                  if rand_vals(j)<=hills(j)
-                     x = insert((x(j+1)+x(j))/2, x, j+buffer);
+                     x = insert((x(j+1)+x(j))/2, x, j);
                      k = insert(k(j), k, j);
-                     a = insert(a0, a, j);
-                     buffer=buffer+1;
                  end
              end
             
@@ -76,16 +74,13 @@ for K2=K2_vals
                     if z == 1
                         x = remove(x,2);
                         k = remove(k, 1);
-                        a = remove(a, 1);
                     elseif z == length(x)-1
                         x = remove(x,z);
                         k = remove(k, z);
-                        a = remove(a, z);
                     else
                         x(z+1) = (x(z+1)+x(z))/2;
                         x = remove(x,z);
                         k = remove(k,z);
-                        a = remove(a,z);
                     end
                 end
                 z = z+1;
@@ -115,67 +110,60 @@ for K2=K2_vals
     end
     
     boundary = mean_bdry/max_sim;
-    plot(linspace(0,tmax,length(mean_bdry)), boundary,'-')
-    hold on
-    minimum = min(abs(abs(boundary-50)-10));
-    if boundary(end) < 50
-        times(p) = -dt*find(abs(abs(boundary-50)-10) == minimum);
-    elseif boundary(end) > 50
-        times(p) = dt*find(abs(abs(boundary-50)-10) == minimum);
+    minimum = min(abs(abs(boundary-B/2)-dist));
+    if boundary(end) < B/2
+        times(p) = -dt*find(abs(abs(boundary-B/2)-dist) == minimum);
+    elseif boundary(end) > B/2
+        times(p) = dt*find(abs(abs(boundary-B/2)-dist) == minimum);
     end        
     p=p+1;
 end
 
 end
 
-ylabel('Cell boundry position')
-xlabel('time t')
-%title('k_{2}=1')
-%legend("k_{1}=1.1","k_{1}=1.3","k_{1}=1.5","k_{1}=2","k_{1}=3")
-grid on
-grid minor
 toc
 figure
 
 xp_t = xp/dt; dp_t = dp/dt;
 
 K2_plot = linspace(K2_vals(1),K2_vals(end),100);
-q1 = @(l0) (dp_t-xp_t)./(xp_t.*l0);
-theory = @(l0) -((1-a0.*q1(l0))./(q1(l0).^(3/2))).*sqrt((dp_t-xp_t).^2./(l0.*dp_t)).*(K1-K2_plot).*sqrt(K1.*K2_plot)./(K1.^(3/2)+K2_plot.^(3/2));
+rescale = xp_t.*(1-xp_t./dp_t);
+numer = @(l0) (a0-l0).*(K1-K2_plot).*sqrt(K1.*K2_plot.*rescale);
+denom = @(l0) K1.^(3/2)+K2_plot.^(3/2)+sqrt(K1.*K2_plot.*rescale);
+theory = @(l0) -numer(l0)./denom(l0);
 
 u = length(K2_vals);
 col_ind = 1;
 
-plot1 = plot(K2_vals-K1 , 10./times(1:u), '-o');
+plot1 = plot(K2_vals-K1 , -10./times(1:u), '-o', LineWidth=1.3);
 hold on
-plot2 = plot(K2_plot-K1, theory(d_vals(1)), '--');
+plot2 = plot(K2_plot-K1, theory(base_d_vals(1)), '--', LineWidth=1.3);
 set([plot1 plot2],'Color', cols(col_ind:col_ind+2));
 col_ind = col_ind + 3;
 
 hold on
-plot1 = plot(K2_vals-K1 , 10./times(u+1:u*2), '-o');
+plot1 = plot(K2_vals-K1 , -10./times(u+1:u*2), '-o', LineWidth=1.3);
 hold on
-plot2 = plot(K2_plot-K1, theory(d_vals(2)), '--');
+plot2 = plot(K2_plot-K1, theory(base_d_vals(2)), '--', LineWidth=1.3);
 set([plot1 plot2],'Color', cols(col_ind:col_ind+2));
 col_ind = col_ind + 3;
 
 hold on
-plot1 = plot(K2_vals-K1 , 10./times(u*2+1:u*3), '-o');
+plot1 = plot(K2_vals-K1 , -10./times(u*2+1:u*3), '-o', LineWidth=1.3);
 hold on
-plot2 = plot(K2_plot-K1, theory(d_vals(3)), '--');
+plot2 = plot(K2_plot-K1, theory(base_d_vals(3)), '--', LineWidth=1.3);
 set([plot1 plot2],'Color', cols(col_ind:col_ind+2));
 col_ind = col_ind + 3;
 
 hold on
-plot1 = plot(K2_vals-K1 , 10./times(u*3+1:end), '-o');
+plot1 = plot(K2_vals-K1 , -10./times(u*3+1:end), '-o', LineWidth=1.3);
 hold on
-plot2 = plot(K2_plot-K1, theory(d_vals(4)), '--');
+plot2 = plot(K2_plot-K1, theory(base_d_vals(4)), '--', LineWidth=1.3);
 set([plot1 plot2],'Color', cols(col_ind:col_ind+2));
 col_ind = col_ind + 3;
 
-ylabel('$$v$$', 'Interpreter','latex', 'FontSize', 15)
-xlabel('$$k_{2} - k_{1}$$', 'Interpreter','latex', 'FontSize', 15)
-legend("$$l_{0}=0.5$$","","$$l_{0}=0.75$$","","$$l_{0}=1.5$$","","$$l_{0}=2$$","", 'Interpreter','latex', 'FontSize', 15)
-title('Hill: $$n=1,\, d=2 \cdot 10^{-4},\, b=5d$$', 'Interpreter','latex', 'FontSize', 15)
+ylabel('$$v$$', 'Interpreter','latex', 'FontSize', 20)
+xlabel('$$K_{1} - K_{2}$$', 'Interpreter','latex', 'FontSize', 15)
+legend("$$l^{*}=0.5$$","","$$l^{*}=0.75$$","","$$l^{*}=1.5$$","","$$l^{*}=2$$","", 'Interpreter','latex', 'FontSize', 15)
 grid on
 grid minor

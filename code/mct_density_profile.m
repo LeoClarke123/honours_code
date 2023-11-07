@@ -1,10 +1,10 @@
-N0 = 200; % initial cell numbers, MUST BE EVEN
-dt = 0.005; % timestep 
+N0 = 50; % initial cell numbers, MUST BE EVEN
+dt = 0.01; % timestep 
 iter = 50000; % iterations
-A = 0; B = 100; L = B-A; % boundaries
+A = 0; B = 50; L = B-A; % boundaries
 l0 = L/N0; a0 = L/N0;
-K1 = 6; K2 = 1; % spring const for soft/hard tissue
-d = l0*1.2; % half occupation constant
+K1 = 1.5; K2 = 1; % spring const for soft/hard tissue
+d = l0*0.8; % half occupation constant
 dp = dt; % max division probability
 xp = dp/10; % death probability
 tic
@@ -12,11 +12,11 @@ tic
 insert = @(a, x, n)cat(2,  x(1:n), a, x(n+1:end)); 
 remove = @(x, n)cat(2,  x(1:n-1), x(n+1:end));
 
-prof_size = 30; % number of points either side in profile
+prof_size = 15; % number of points either side in profile
 
 full_density = zeros(1, prof_size*2 + 1);
 
-tot_sim = 20;
+tot_sim = 30;
 sim = 1;
 
 while sim<=tot_sim
@@ -41,8 +41,8 @@ while sim<=tot_sim
         i=2;
         while i<length(x)
             x(i) = x(i)+dt*(k(i)*(x(i+1)-x(i)-a(i))-k(i-1)*(x(i)-x(i-1)-a(i-1)));
-            if x(i) > 100 
-                x(i) = 100;
+            if x(i) > B 
+                x(i) = B;
             elseif x(i) < 0
                 x(i) = 0;
             end
@@ -85,7 +85,7 @@ while sim<=tot_sim
         if mod(round(t,2), 10*dt) == 0
             barrier = find(circshift(k,-1)-k == (K2-K1)); % K1 > K2
             if barrier > 0
-                if (barrier > (prof_size-1)) && (barrier < (length(x)-prof_size-1))
+                if (barrier > (prof_size)) && (barrier < (length(x)-prof_size-1))
                     dens = (x(barrier-prof_size+1:barrier+prof_size+1)-x(barrier-prof_size:barrier+prof_size)).^-1;
                     if sum(abs(dens)>5) == 0
                         temp_density = temp_density + dens;
@@ -101,16 +101,14 @@ while sim<=tot_sim
 end
 toc
 full_density = full_density./tot_sim;
-plot(linspace(0,1,length(full_density)),full_density,'.', 'MarkerSize', 10)
-title('$$l_{0}=1.2a_{0}$$', 'Interpreter','latex')
-xlabel('$$x$$', 'Interpreter','latex')
-ylabel('$$\rho$$', 'Interpreter','latex')
-legend('$$k_{1}-k_{2}=0.5$$', '$$k_{1}-k_{2}=1$$', '$$k_{1}-k_{2}=2$$', '$$k_{1}-k_{2}=5$$', 'Interpreter','latex')
-%legend('$$k_{1}-k_{2}=2$$', 'Interpreter','latex')
-%grid on
-%grid minor
-ylim([1.5,2.5])
+plot(linspace(-prof_size,prof_size,length(full_density)),full_density,'.', 'MarkerSize', 15)
+xlabel('$$x$$', 'Interpreter','latex','FontSize', 20)
+ylabel('$$q$$', 'Interpreter','latex','FontSize', 20)
+%legend("$$K_{1}-K_{2}=0.5$$", 'Interpreter','latex', 'FontSize', 15)
+legend("$$K_{1}-K_{2}=3$$","$$K_{1}-K_{2}=2$$","$$K_{1}-K_{2}=1$$","$$K_{1}-K_{2}=0.5$$", 'Interpreter','latex', 'FontSize', 15)
+% ylim([1.3,1.7])
+grid on
+grid minor
 hold on
-
 
 
